@@ -6,22 +6,25 @@ to your service.
 Note: we only handle the first operation here
 */
 
-function fetchGraphQL(
+const adminKey = "Yr1mw58ZZaU2kva6JNTdcqOzUj233TxxkUJYMcTzgvb2YHtIzmDj81MWlmhCpn8v";
+
+async function fetchGraphQL(
   operationsDoc: string,
   operationName: string,
   variables: Record<string, any>
 ) {
-  return fetch('undefined', {
-    method: 'POST',
+  const result = await fetch("undefined", {
+    method: "POST",
     body: JSON.stringify({
       query: operationsDoc,
       variables,
       operationName,
     }),
     headers: {
-      "x-hasura-admin-secret": "Yr1mw58ZZaU2kva6JNTdcqOzUj233TxxkUJYMcTzgvb2YHtIzmDj81MWlmhCpn8v"
-    }
-  }).then(result => result.json());
+      "x-hasura-admin-secret": adminKey,
+    },
+  });
+  return await result.json();
 }
 
 const operation = `
@@ -35,5 +38,9 @@ const operation = `
 `;
 
 function insertUser(userEmail: string, userName: string, userUuid: string) {
-  return fetchGraphQL(operation, "InsertUser", { "userEmail": userEmail, "userName": userName, "userUuid": userUuid })
+  return fetchGraphQL(
+    operation,
+    "InsertUser",
+    { "userEmail": userEmail, "userName": userName, "userUuid": userUuid }
+  );
 }

@@ -39,7 +39,7 @@ exports.processSignUp = functions.auth.user().onCreate(async (user) => {
           refreshTime: new Date().getTime(),
         });
       })
-      .catch(error => {
+      .catch((error) => {
         console.error(error);
       });
   }
