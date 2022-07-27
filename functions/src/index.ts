@@ -21,14 +21,26 @@ exports.processSignUp = functions.auth.user().onCreate(async (user) => {
     },
   };
 
-  try {
-    await admin.auth().setCustomUserClaims(user.uid, customClaims);
-    // Update real-time database to notify client to force refresh.
-    const metadataRef = admin.database().ref("metadata/" + user.uid);
-    return await metadataRef.set({
-      refreshTime: new Date().getTime(),
-    });
-  } catch (error) {
-    console.log(error);
+  if (user.email && user.displayName && user.uid) {
+    insertUser(user.email, user.displayName, user.uid)
+      .then(({ data, errors }) => {
+        if (errors) {
+          console.error(errors);
+        }
+        console.log(data);
+      })
+      .then(() => {
+        return admin.auth().setCustomUserClaims(user.uid, customClaims);
+      })
+      .then(() => {
+        // Update real-time database to notify client to force refresh.
+        const metadataRef = admin.database().ref("metadata/" + user.uid);
+        return metadataRef.set({
+          refreshTime: new Date().getTime(),
+        });
+      })
+      .catch(error => {
+        console.error(error);
+      });
   }
 });
