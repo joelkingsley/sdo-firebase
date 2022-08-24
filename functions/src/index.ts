@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { HasuraGraphQLService } from "./services/hasura-graphql-service";
+import { CloudflareStreamService } from "./services/cloudflare-stream-service";
 
 // // Start writing Firebase Functions
 // // https://firebase.google.com/docs/functions/typescript
@@ -37,6 +38,67 @@ exports.processSignUp = functions.auth.user().onCreate(async (user) => {
       })
       .catch((error) => {
         console.error(error);
+      });
+  }
+});
+
+// Generate Cloudflare Stream token
+// TODO: - Remove after finalizing Google Cloud Storage
+exports.generateCloudflareStreamToken = functions.https.onRequest(async (req, res): Promise<any> => {
+  const videoId = (req.body.videoId as string | undefined);
+  if (videoId == undefined) {
+    return res.status(400).send({ error: "videoId should not be empty" });
+  } else {
+    const idToken = req.get("Authorization")?.replace("Bearer ", "") ?? "";
+    return admin.auth().verifyIdToken(idToken)
+      .then(() => {
+        const cloudflareStreamService = new CloudflareStreamService();
+        return cloudflareStreamService.generateStreamToken(videoId);
+      })
+      .then((streamToken) => {
+        return res.json({ result: streamToken });
+      })
+      .catch((err) => {
+        console.error(err);
+        return res.status(500).send({ error: "Error while generating stream token" });
+      });
+  }
+});
+
+// Generate signed url for Google Cloud Storage
+exports.createGoogleCloudStorageSignedUrl = functions.https.onRequest(async (req, res): Promise<any> => {
+  const bucketName = (req.body.bucketName as string | undefined);
+  const fileName = (req.body.fileName as string | undefined);
+
+  if (bucketName == undefined || fileName == undefined) {
+    if (bucketName == undefined && fileName == undefined) {
+      return res.status(400).send({ error: "bucketName and fileName should not be empty" });
+    } else if (bucketName == undefined) {
+      return res.status(400).send({ error: "bucketName should not be empty" });
+    } else {
+      return res.status(400).send({ error: "fileName should not be empty" });
+    }
+  } else {
+    // Creates a client
+    const storage = admin.storage();
+
+    // These options will allow temporary read access to the file
+    const options = {
+      version: "v4" as "v2" | "v4",
+      action: "read" as "read" | "write" | "delete" | "resumable",
+      expires: Date.now() + 60 * 60 * 1000, // 60 minutes
+    };
+
+    // Get a v4 signed URL for reading the file
+    return await storage
+      .bucket(bucketName)
+      .file(fileName)
+      .getSignedUrl(options)
+      .then(([url]) => {
+        console.log(`Generated GET signed URL: ${url}`);
+        console.log("You can use this URL with any user agent, for example:");
+        console.log(`curl '${url}'`);
+        return res.status(200).send(url);
       });
   }
 });
