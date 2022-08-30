@@ -79,10 +79,12 @@ exports.createGoogleCloudStorageSignedUrl = functions.https.onRequest(async (req
       return res.status(400).send({ error: "fileName should not be empty" });
     }
   } else {
-    // Verify id token
-    const idToken = req.get("Authorization")?.replace("Bearer ", "") ?? "";
-    return admin.auth().verifyIdToken(idToken)
-      .then(async () => {
+    try {
+      // Verify id token
+      const idToken = req.get("Authorization")?.replace("Bearer ", "") ?? "";
+      await admin.auth().verifyIdToken(idToken);
+
+      try {
         // Creates a client
         const storage = admin.storage();
 
@@ -102,9 +104,11 @@ exports.createGoogleCloudStorageSignedUrl = functions.https.onRequest(async (req
         console.log("You can use this URL with any user agent, for example:");
         console.log(`curl '${url}'`);
         return res.status(200).send({ signedUrl: url });
-      })
-      .catch((err) => {
+      } catch (err) {
         return res.status(500).send({ error: err });
-      });
+      }
+    } catch (err) {
+      return res.status(401).send({ error: err });
+    }
   }
 });
