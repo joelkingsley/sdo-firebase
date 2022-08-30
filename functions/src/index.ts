@@ -79,26 +79,32 @@ exports.createGoogleCloudStorageSignedUrl = functions.https.onRequest(async (req
       return res.status(400).send({ error: "fileName should not be empty" });
     }
   } else {
-    // Creates a client
-    const storage = admin.storage();
+    // Verify id token
+    const idToken = req.get("Authorization")?.replace("Bearer ", "") ?? "";
+    return admin.auth().verifyIdToken(idToken)
+      .then(async () => {
+        // Creates a client
+        const storage = admin.storage();
 
-    // These options will allow temporary read access to the file
-    const options = {
-      version: "v4" as "v2" | "v4",
-      action: "read" as "read" | "write" | "delete" | "resumable",
-      expires: Date.now() + 60 * 60 * 1000, // 60 minutes
-    };
+        // These options will allow temporary read access to the file
+        const options = {
+          version: "v4" as "v2" | "v4",
+          action: "read" as "read" | "write" | "delete" | "resumable",
+          expires: Date.now() + 60 * 60 * 1000, // 60 minutes
+        };
 
-    // Get a v4 signed URL for reading the file
-    return await storage
-      .bucket(bucketName)
-      .file(fileName)
-      .getSignedUrl(options)
-      .then(([url]) => {
+        // Get a v4 signed URL for reading the file
+        const [url] = await storage
+          .bucket(bucketName)
+          .file(fileName)
+          .getSignedUrl(options);
         console.log(`Generated GET signed URL: ${url}`);
         console.log("You can use this URL with any user agent, for example:");
         console.log(`curl '${url}'`);
-        return res.status(200).send(url);
+        return res.status(200).send({ signedUrl: url });
+      })
+      .catch((err) => {
+        return res.status(500).send({ error: err });
       });
   }
 });
