@@ -67,38 +67,60 @@ exports.generateCloudflareStreamToken = functions.https.onRequest(async (req, re
 
 // Generate signed url for Google Cloud Storage
 exports.createGoogleCloudStorageSignedUrl = functions.https.onRequest(async (req, res): Promise<any> => {
-  const bucketName = (req.body.bucketName as string | undefined);
-  const fileName = (req.body.fileName as string | undefined);
-
-  if (bucketName == undefined || fileName == undefined) {
-    if (bucketName == undefined && fileName == undefined) {
-      return res.status(400).send({ error: "bucketName and fileName should not be empty" });
-    } else if (bucketName == undefined) {
-      return res.status(400).send({ error: "bucketName should not be empty" });
-    } else {
-      return res.status(400).send({ error: "fileName should not be empty" });
-    }
+  const videoId = (req.body.videoId as string | undefined);
+  if (videoId == undefined) {
+    return res.status(400).send({ error: "videoId should not be empty" });
   } else {
-    // Creates a client
-    const storage = admin.storage();
+    try {
+      // Verify id token
+      const idToken = req.get("Authorization")?.replace("Bearer ", "") ?? "";
+      const cloudStorageVideoDetails = await admin.auth().verifyIdToken(idToken)
+        .then(() => {
+          const hasuraGraphQLService = new HasuraGraphQLService();
+          return hasuraGraphQLService.fetchGetCloudStorageVideoDetails(videoId);
+        })
+        .then(({ data }) => {
+          return data?.videos[0];
+        });
 
-    // These options will allow temporary read access to the file
-    const options = {
-      version: "v4" as "v2" | "v4",
-      action: "read" as "read" | "write" | "delete" | "resumable",
-      expires: Date.now() + 60 * 60 * 1000, // 60 minutes
-    };
+      // Validate bucketName and fileName
+      const bucketName: string | undefined = cloudStorageVideoDetails?.gcp_storage_bucket_name;
+      const fileName: string | undefined = cloudStorageVideoDetails?.gcp_storage_file_name;
+      if (bucketName == undefined || fileName == undefined) {
+        if (bucketName == undefined && fileName == undefined) {
+          return res.status(400).send({ error: "bucketName and fileName not found" });
+        } else if (bucketName == undefined) {
+          return res.status(400).send({ error: "bucketName not found" });
+        } else {
+          return res.status(400).send({ error: "fileName not found" });
+        }
+      }
 
-    // Get a v4 signed URL for reading the file
-    return await storage
-      .bucket(bucketName)
-      .file(fileName)
-      .getSignedUrl(options)
-      .then(([url]) => {
+      try {
+        // Creates a client
+        const storage = admin.storage();
+
+        // These options will allow temporary read access to the file
+        const options = {
+          version: "v4" as "v2" | "v4",
+          action: "read" as "read" | "write" | "delete" | "resumable",
+          expires: Date.now() + 60 * 60 * 1000, // 60 minutes
+        };
+
+        // Get a v4 signed URL for reading the file
+        const [url] = await storage
+          .bucket(bucketName)
+          .file(fileName)
+          .getSignedUrl(options);
         console.log(`Generated GET signed URL: ${url}`);
         console.log("You can use this URL with any user agent, for example:");
         console.log(`curl '${url}'`);
-        return res.status(200).send(url);
-      });
+        return res.status(200).send({ signedUrl: url });
+      } catch (err) {
+        return res.status(500).send({ error: err });
+      }
+    } catch (err) {
+      return res.status(401).send({ error: err });
+    }
   }
 });
