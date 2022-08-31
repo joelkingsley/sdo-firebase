@@ -1,7 +1,7 @@
 export class HasuraGraphQLService {
-  adminKey = "Yr1mw58ZZaU2kva6JNTdcqOzUj233TxxkUJYMcTzgvb2YHtIzmDj81MWlmhCpn8v";
+  private adminKey = "Yr1mw58ZZaU2kva6JNTdcqOzUj233TxxkUJYMcTzgvb2YHtIzmDj81MWlmhCpn8v";
 
-  async fetchGraphQL(
+  private async fetchGraphQL(
     operationsDoc: string,
     operationName: string,
     variables: Record<string, any>
@@ -21,7 +21,7 @@ export class HasuraGraphQLService {
     return await result.json();
   }
 
-  operation = `
+  private insertUserOperation = `
   mutation InsertUser($userEmail: String!, $userName: String!, $userUuid: String!) {
     insert_users_one(object: {user_email: $userEmail, user_name: $userName, user_uuid: $userUuid}) {
       user_email
@@ -29,13 +29,30 @@ export class HasuraGraphQLService {
       user_uuid
     }
   }
-`;
+  `;
 
-  insertUser(userEmail: string, userName: string, userUuid: string) {
+  private fetchGetCloudStorageVideoDetailsOperation = `
+  query GetCloudStorageVideoDetails($videoId: uuid!) {
+    videos(where: {video_id: {_eq: $videoId}}) {
+      gcp_storage_file_name
+      gcp_storage_bucket_name
+    }
+  }
+  `;
+
+  async insertUser(userEmail: string, userName: string, userUuid: string): Promise<any> {
     return this.fetchGraphQL(
-      this.operation,
+      this.insertUserOperation,
       "InsertUser",
       { "userEmail": userEmail, "userName": userName, "userUuid": userUuid }
+    );
+  }
+
+  async fetchGetCloudStorageVideoDetails(videoId: string): Promise<any> {
+    return this.fetchGraphQL(
+      this.fetchGetCloudStorageVideoDetailsOperation,
+      "GetCloudStorageVideoDetails",
+      { "videoId": videoId }
     );
   }
 }
