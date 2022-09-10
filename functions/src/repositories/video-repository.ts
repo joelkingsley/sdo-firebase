@@ -125,7 +125,7 @@ export class VideoRepository {
                 });
               return Promise.all(signedThumbnailUrlDetailsRequest)
                 .then((signedThumbnailUrlDetails) => {
-                  return res.status(200).send(signedThumbnailUrlDetails);
+                  return res.status(200).send({ thumbnailDetails: signedThumbnailUrlDetails });
                 })
                 .catch((err) => {
                   return res.status(500).send({
