@@ -66,8 +66,8 @@ exports.generateCloudflareStreamToken = functions.https.onRequest(async (req, re
   }
 });
 
-// Generate signed url for Google Cloud Storage
-exports.createGoogleCloudStorageSignedUrl = functions.https.onRequest(async (req, res): Promise<any> => {
+// Get Video URL data
+exports.getVideoUrlData = functions.https.onRequest(async (req, res): Promise<any> => {
   const videoId = (req.body.videoId as string | undefined);
   const videoRepository = new VideoRepository();
   return videoRepository.getUrlDataOfVideo(req, res, videoId);
