@@ -36,6 +36,8 @@ export class HasuraGraphQLService {
     videos(where: {video_id: {_eq: $videoId}}) {
       gcp_storage_file_name
       gcp_storage_bucket_name
+      gcp_thumbnail_file_name
+      gcp_thumbnail_bucket_name
     }
   }
   `;
