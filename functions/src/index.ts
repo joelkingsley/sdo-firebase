@@ -3,6 +3,7 @@ import * as admin from "firebase-admin";
 import { HasuraGraphQLService } from "./services/hasura-graphql-service";
 import { CloudflareStreamService } from "./services/cloudflare-stream-service";
 import { VideoRepository } from "./repositories/video-repository";
+import { BucketRepository } from "./repositories/bucket-repository";
 
 // // Start writing Firebase Functions
 // // https://firebase.google.com/docs/functions/typescript
@@ -78,4 +79,19 @@ exports.getSignedThumbnailUrlOfVideos = functions.https.onRequest(async (req, re
   const videoIds = (req.body.videoIds as Array<string> | undefined);
   const videoRepository = new VideoRepository();
   return videoRepository.getSignedThumbnailUrlOfVideos(req, res, videoIds);
+});
+
+// Get CORS configuration for bucket
+exports.getCORSConfigurationForBucket = functions.https.onRequest(async (req, res): Promise<any> => {
+  const bucketName = (req.body.bucketName as string | undefined);
+  const bucketRepository = new BucketRepository();
+  return bucketRepository.getCORSConfigurationOfBucket(req, res, bucketName);
+});
+
+// Configure CORS configuration on bucket
+exports.configureCORSConfigurationOnBucket = functions.https.onRequest(async (req, res): Promise<any> => {
+  const bucketName = (req.body.bucketName as string | undefined);
+  const origin = (req.body.origin as string | undefined);
+  const bucketRepository = new BucketRepository();
+  return bucketRepository.configureCORSConfigurationOnBucket(req, res, bucketName, origin);
 });
