@@ -95,3 +95,13 @@ exports.configureCORSConfigurationOnBucket = functions.https.onRequest(async (re
   const bucketRepository = new BucketRepository();
   return bucketRepository.configureCORSConfigurationOnBucket(req, res, bucketName, origin);
 });
+
+// Get signed cookie
+exports.getSignedCookie = functions.https.onRequest(async (req, res): Promise<any> => {
+  const urlPrefix = (req.body.urlPrefix as string | undefined);
+  const keyName = (req.body.keyName as string | undefined);
+  const key = (req.body.key as string | undefined);
+  const expiration = (req.body.expiration as number | undefined);
+  const videoRepository = new VideoRepository();
+  return videoRepository.signCookie(req, res, urlPrefix, keyName, key, expiration);
+});
