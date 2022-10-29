@@ -36,18 +36,6 @@ export class HasuraGraphQLService {
     videos(where: {video_id: {_eq: $videoId}}) {
       gcp_storage_file_name
       gcp_storage_bucket_name
-      gcp_thumbnail_file_name
-      gcp_thumbnail_bucket_name
-    }
-  }
-  `;
-
-  private getThumbnailDetailsOfVideosOperation = `
-  query GetThumbnailDetailsOfVideos($videoIds: [uuid!]) {
-    videos(where: {video_id: {_in: $videoIds}}) {
-      video_id
-      gcp_thumbnail_file_name
-      gcp_thumbnail_bucket_name
     }
   }
   `;
@@ -65,14 +53,6 @@ export class HasuraGraphQLService {
       this.getCloudStorageVideoDetailsOperation,
       "GetCloudStorageVideoDetails",
       { "videoId": videoId }
-    );
-  }
-
-  async getThumbnailDetailsOfVideos(videoIds: Array<string>): Promise<any> {
-    return this.fetchGraphQL(
-      this.getThumbnailDetailsOfVideosOperation,
-      "GetThumbnailDetailsOfVideos",
-      { "videoIds": videoIds }
     );
   }
 }

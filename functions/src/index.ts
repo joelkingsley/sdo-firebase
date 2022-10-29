@@ -1,7 +1,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { HasuraGraphQLService } from "./services/hasura-graphql-service";
-import { CloudflareStreamService } from "./services/cloudflare-stream-service";
 import { VideoRepository } from "./repositories/video-repository";
 import { BucketRepository } from "./repositories/bucket-repository";
 
@@ -44,41 +43,11 @@ exports.processSignUp = functions.auth.user().onCreate(async (user) => {
   }
 });
 
-// Generate Cloudflare Stream token
-// TODO: - Remove after finalizing Google Cloud Storage
-exports.generateCloudflareStreamToken = functions.https.onRequest(async (req, res): Promise<any> => {
-  const videoId = (req.body.videoId as string | undefined);
-  if (videoId == undefined) {
-    return res.status(400).send({ error: "videoId should not be empty" });
-  } else {
-    const idToken = req.get("Authorization")?.replace("Bearer ", "") ?? "";
-    return admin.auth().verifyIdToken(idToken)
-      .then(() => {
-        const cloudflareStreamService = new CloudflareStreamService();
-        return cloudflareStreamService.generateStreamToken(videoId);
-      })
-      .then((streamToken) => {
-        return res.json({ result: streamToken });
-      })
-      .catch((err) => {
-        console.error(err);
-        return res.status(500).send({ error: "Error while generating stream token" });
-      });
-  }
-});
-
 // Get Video URL data
-exports.getVideoUrlData = functions.https.onRequest(async (req, res): Promise<any> => {
+exports.getSignedUrlOfVideo = functions.https.onRequest(async (req, res): Promise<any> => {
   const videoId = (req.body.videoId as string | undefined);
   const videoRepository = new VideoRepository();
-  return videoRepository.getUrlDataOfVideo(req, res, videoId);
-});
-
-// Get Signed Thumbnail URL of Videos
-exports.getSignedThumbnailUrlOfVideos = functions.https.onRequest(async (req, res): Promise<any> => {
-  const videoIds = (req.body.videoIds as Array<string> | undefined);
-  const videoRepository = new VideoRepository();
-  return videoRepository.getSignedThumbnailUrlOfVideos(req, res, videoIds);
+  return videoRepository.getSignedUrlOfVideo(req, res, videoId);
 });
 
 // Get CORS configuration for bucket
