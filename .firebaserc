@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "sound-doctrine-online-com"
+    "default": "sound-doctrine-online-com",
+    "prod": "sound-doctrine-online-com"
   }
 }

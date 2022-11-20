@@ -1,5 +1,5 @@
 export class HasuraGraphQLService {
-  private adminKey = "Yr1mw58ZZaU2kva6JNTdcqOzUj233TxxkUJYMcTzgvb2YHtIzmDj81MWlmhCpn8v";
+  private adminKey = process.env.HASURA_ADMIN_KEY as string;
 
   private async fetchGraphQL(
     operationsDoc: string,
