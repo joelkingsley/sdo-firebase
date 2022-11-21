@@ -8,7 +8,7 @@ export class TokenRepository {
     req: functions.https.Request,
     res: functions.Response<any>
   ): Promise<any> {
-    const code = req.query.code as string | undefined;
+    const code = req.body.code as string | undefined;
     if (code == undefined) {
       return res.status(401).send({
         error: {
