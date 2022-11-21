@@ -3,6 +3,7 @@ import * as admin from "firebase-admin";
 import { HasuraGraphQLService } from "./services/hasura-graphql-service";
 import { VideoRepository } from "./repositories/video-repository";
 import { BucketRepository } from "./repositories/bucket-repository";
+import { TokenRepository } from "./repositories/token-repository";
 
 // // Start writing Firebase Functions
 // // https://firebase.google.com/docs/functions/typescript
@@ -12,7 +13,7 @@ import { BucketRepository } from "./repositories/bucket-repository";
 //   response.send("Hello from Firebase!");
 // });
 
-admin.initializeApp(functions.config().firebase);
+admin.initializeApp();
 
 // On sign up.
 exports.processSignUp = functions.auth.user().onCreate(async (user) => {
@@ -38,7 +39,7 @@ exports.processSignUp = functions.auth.user().onCreate(async (user) => {
         });
       })
       .catch((error) => {
-        console.error(error);
+        functions.logger.error(error);
       });
   }
 });
@@ -73,4 +74,16 @@ exports.getSignedCookie = functions.https.onRequest(async (req, res): Promise<an
   const expiration = (req.body.expiration as number | undefined);
   const videoRepository = new VideoRepository();
   return videoRepository.signCookie(req, res, urlPrefix, keyName, key, expiration);
+});
+
+// Get configs
+exports.getConfigs = functions.https.onRequest(async (req, res): Promise<any> => {
+  const adminKey = process.env.HASURA_ADMIN_KEY;
+  return res.send({ configs: { hasuraAdminKey: adminKey } });
+});
+
+// Get Apple ID refresh token
+exports.getAppleIdRefreshToken = functions.https.onRequest(async (req, res): Promise<any> => {
+  const tokenRepository = new TokenRepository();
+  return tokenRepository.getAppleIdRefreshToken(req, res);
 });
