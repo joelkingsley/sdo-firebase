@@ -65,4 +65,65 @@ export class TokenRepository {
       });
     });
   }
+
+  async revokeAppleIdRefreshToken(
+    req: functions.https.Request,
+    res: functions.Response<any>
+  ): Promise<any> {
+    const refreshToken = req.body.refreshToken as string | undefined;
+    if (refreshToken == undefined) {
+      return res.status(401).send({
+        code: "REFRESH_TOKEN_NOT_SET",
+        message: "Refresh token is not set",
+        isRevoked: false,
+      });
+    }
+
+    const jwtService = new JWTService();
+
+    const teamId = "A5U7V8A368";
+    const expiryInSeconds = 3600;
+    const keyId = process.env.APPLE_AUTH_KEY_ID as string;
+    const appId = "online.sounddoctrine.sdo-apple";
+    const audience = "https://appleid.apple.com";
+    const algorithm = "ES256";
+
+    // Note: Download key file from developer.apple.com/account/resources/authkeys/list
+    const appleAuthKeyFileName = process.env.APPLE_AUTH_KEY_FILE_NAME as string;
+    const privateKey = fs.readFileSync(`src/assets/apple-auth-keys/${appleAuthKeyFileName}`);
+
+    // Sign with your team ID and key ID information.
+    return jwtService.makeJWT(
+      teamId,
+      expiryInSeconds,
+      audience,
+      appId,
+      algorithm,
+      keyId,
+      privateKey
+    ).then(async (clientSecret: string) => {
+      const data = {
+        "token": refreshToken,
+        "client_id": appId,
+        "client_secret": clientSecret,
+        "token_type_hint": "refresh_token",
+      };
+
+      // Validate the authorization grant code to get a refresh token
+      return axios.post("https://appleid.apple.com/auth/revoke", new URLSearchParams(data), {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }).then(async () => {
+        return res.status(200).send({
+          isRevoked: true,
+        });
+      }).catch((err) => {
+        return res.status(500).send({
+          errorObject: err,
+          isRevoked: false,
+        });
+      });
+    });
+  }
 }

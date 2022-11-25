@@ -22,10 +22,9 @@ export class HasuraGraphQLService {
   }
 
   private insertUserOperation = `
-  mutation InsertUser($userEmail: String!, $userName: String!, $userUuid: String!) {
-    insert_users_one(object: {user_email: $userEmail, user_name: $userName, user_uuid: $userUuid}) {
+  mutation InsertUser($userEmail: String!, $userUuid: String!) {
+    insert_users_one(object: {user_email: $userEmail, user_uuid: $userUuid}) {
       user_email
-      user_name
       user_uuid
     }
   }
@@ -40,11 +39,11 @@ export class HasuraGraphQLService {
   }
   `;
 
-  async insertUser(userEmail: string, userName: string, userUuid: string): Promise<any> {
+  async insertUser(userEmail: string, userUuid: string): Promise<any> {
     return this.fetchGraphQL(
       this.insertUserOperation,
       "InsertUser",
-      { "userEmail": userEmail, "userName": userName, "userUuid": userUuid }
+      { "userEmail": userEmail, "userUuid": userUuid }
     );
   }
 

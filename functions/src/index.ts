@@ -25,9 +25,9 @@ exports.processSignUp = functions.auth.user().onCreate(async (user) => {
     },
   };
 
-  if (user.email && user.displayName && user.uid) {
+  if (user.email && user.uid) {
     const hasuraGraphQLService = new HasuraGraphQLService();
-    hasuraGraphQLService.insertUser(user.email, user.displayName, user.uid)
+    hasuraGraphQLService.insertUser(user.email, user.uid)
       .then(() => {
         return admin.auth().setCustomUserClaims(user.uid, customClaims);
       })
@@ -41,6 +41,10 @@ exports.processSignUp = functions.auth.user().onCreate(async (user) => {
       .catch((error) => {
         functions.logger.error(error);
       });
+  } else {
+    functions.logger.error(
+      `Either email, displayName or uid is null: email=${user.email} uid=${user.uid}`
+    );
   }
 });
 
@@ -86,4 +90,10 @@ exports.getConfigs = functions.https.onRequest(async (req, res): Promise<any> =>
 exports.getAppleIdRefreshToken = functions.https.onRequest(async (req, res): Promise<any> => {
   const tokenRepository = new TokenRepository();
   return tokenRepository.getAppleIdRefreshToken(req, res);
+});
+
+// Revoke Apple ID refresh token
+exports.revokeAppleIdRefreshToken = functions.https.onRequest(async (req, res): Promise<any> => {
+  const tokenRepository = new TokenRepository();
+  return tokenRepository.revokeAppleIdRefreshToken(req, res);
 });
