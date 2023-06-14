@@ -27,7 +27,7 @@ exports.processSignUp = functions.auth.user().onCreate(async (user) => {
 
   if (user.email && user.uid) {
     const hasuraGraphQLService = new HasuraGraphQLService();
-    hasuraGraphQLService.insertUser(user.email, user.uid)
+    hasuraGraphQLService.insertUserLegacy(user.email, user.uid)
       .then(() => {
         return admin.auth().setCustomUserClaims(user.uid, customClaims);
       })
@@ -52,7 +52,7 @@ exports.processSignUp = functions.auth.user().onCreate(async (user) => {
 exports.getSignedUrlOfVideo = functions.https.onRequest(async (req, res): Promise<any> => {
   const videoId = (req.body.videoId as string | undefined);
   const videoRepository = new VideoRepository();
-  return videoRepository.getSignedUrlOfVideo(req, res, videoId);
+  return videoRepository.getSignedUrlOfVideoLegacy(req, res, videoId);
 });
 
 // Get CORS configuration for bucket
@@ -96,4 +96,45 @@ exports.getAppleIdRefreshToken = functions.https.onRequest(async (req, res): Pro
 exports.revokeAppleIdRefreshToken = functions.https.onRequest(async (req, res): Promise<any> => {
   const tokenRepository = new TokenRepository();
   return tokenRepository.revokeAppleIdRefreshToken(req, res);
+});
+
+// v2 methods
+// On sign up.
+exports.processSignUpV2 = functions.auth.user().onCreate(async (user) => {
+  const customClaims = {
+    "https://hasura.io/jwt/claims": {
+      "x-hasura-default-role": "user",
+      "x-hasura-allowed-roles": ["user"],
+      "x-hasura-user-id": user.uid,
+    },
+  };
+
+  if (user.email && user.uid) {
+    const hasuraGraphQLService = new HasuraGraphQLService();
+    hasuraGraphQLService.insertUser(user.email, user.uid)
+      .then(() => {
+        return admin.auth().setCustomUserClaims(user.uid, customClaims);
+      })
+      .then(() => {
+        // Update real-time database to notify client to force refresh.
+        const metadataRef = admin.database().ref("metadata/" + user.uid);
+        return metadataRef.set({
+          refreshTime: new Date().getTime(),
+        });
+      })
+      .catch((error) => {
+        functions.logger.error(error);
+      });
+  } else {
+    functions.logger.error(
+      `Either email, displayName or uid is null: email=${user.email} uid=${user.uid}`
+    );
+  }
+});
+
+// Get Video URL data
+exports.getSignedUrlOfVideoV2 = functions.https.onRequest(async (req, res): Promise<any> => {
+  const videoId = (req.body.videoId as string | undefined);
+  const videoRepository = new VideoRepository();
+  return videoRepository.getSignedUrlOfVideo(req, res, videoId);
 });
