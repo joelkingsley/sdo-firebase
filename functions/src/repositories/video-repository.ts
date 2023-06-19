@@ -96,39 +96,47 @@ export class VideoRepository {
               console.log("Completed fetching cloud storage video details successfully");
               // Validate bucketName and fileName
               const cloudStorageVideoDetails = data?.videos[0];
-              const videoBucketName: string | undefined = cloudStorageVideoDetails?.gcpStorageBucketName;
-              const videoFileName: string | undefined = cloudStorageVideoDetails?.gcpStorageFileName;
+              const gcpVideoBucketName: string | undefined = cloudStorageVideoDetails?.gcpStorageBucketName;
+              const gcpVideoFileName: string | undefined = cloudStorageVideoDetails?.gcpStorageFileName;
+              const bunnyHlsVideoUrl: string | undefined = cloudStorageVideoDetails?.bunnyStorageHlsUrl;
               if (
-                videoBucketName == undefined ||
-                videoFileName == undefined
+                (gcpVideoBucketName == undefined || gcpVideoFileName == undefined) ||
+                (gcpVideoBucketName.length <= 0 || gcpVideoFileName.length <= 0)
               ) {
-                return res.status(500).send({
-                  error: {
-                    code: "SERVER_ERROR",
-                    message: "videoBucketName or fileName not found",
-                  },
-                });
-              }
-              // These options will allow temporary read access to the file
-              const options = {
-                version: "v4" as "v2" | "v4",
-                action: "read" as "read" | "write" | "delete" | "resumable",
-                expires: Date.now() + 60 * 60 * 1000, // 60 minutes
-              };
-
-              // Get a v4 signed URL for reading the file
-              const getSignedVideoUrl = this.storage
-                .bucket(videoBucketName).file(videoFileName).getSignedUrl(options);
-              return Promise.all([getSignedVideoUrl])
-                .then((results) => {
-                  const [videoUrl] = results[0];
-                  return res.status(200).send({
-                    videoUrl: videoUrl,
+                if (bunnyHlsVideoUrl == undefined || bunnyHlsVideoUrl.length <= 0) {
+                  return res.status(500).send({
+                    error: {
+                      code: "SERVER_ERROR",
+                      message: "Neither gcpVideoBucketName & gcpStorageFileName or bunnyHlsVideoUrl found",
+                    },
                   });
-                })
-                .catch((err) => {
-                  return res.status(500).send({ error: { code: "SIGNING_URL_ERROR", errorObject: err } });
-                });
+                } else {
+                  return res.status(200).send({
+                    videoUrl: bunnyHlsVideoUrl,
+                  });
+                }
+              } else {
+                // These options will allow temporary read access to the file
+                const options = {
+                  version: "v4" as "v2" | "v4",
+                  action: "read" as "read" | "write" | "delete" | "resumable",
+                  expires: Date.now() + 60 * 60 * 1000, // 60 minutes
+                };
+
+                // Get a v4 signed URL for reading the file
+                const getSignedVideoUrl = this.storage
+                  .bucket(gcpVideoBucketName).file(gcpVideoFileName).getSignedUrl(options);
+                return Promise.all([getSignedVideoUrl])
+                  .then((results) => {
+                    const [videoUrl] = results[0];
+                    return res.status(200).send({
+                      videoUrl: videoUrl,
+                    });
+                  })
+                  .catch((err) => {
+                    return res.status(500).send({ error: { code: "SIGNING_URL_ERROR", errorObject: err } });
+                  });
+              }
             })
             .catch((err) => {
               console.log("Error while fetching cloud storage video details");

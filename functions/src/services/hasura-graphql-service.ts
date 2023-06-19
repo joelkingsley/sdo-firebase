@@ -86,6 +86,7 @@ export class HasuraGraphQLService {
     videos: Video(where: {id: {_eq: $videoId}}) {
       gcpStorageFileName
       gcpStorageBucketName
+      bunnyStorageHlsUrl
     }
   }
   `;
