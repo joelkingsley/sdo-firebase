@@ -34,7 +34,7 @@ export class HasuraGraphQLService {
     variables: Record<string, any>
   ) {
     const nodeFetch = await import("node-fetch");
-    const result = await nodeFetch.default("https://sdo-hasura-prod.hasura.app/v1/graphql", {
+    const result = await nodeFetch.default("https://sdo-prod.hasura.app/v1/graphql", {
       method: "POST",
       body: JSON.stringify({
         query: operationsDoc,
